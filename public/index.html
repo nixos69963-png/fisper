@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Whisper Flow</title>
+
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system,
+        BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+      --surface: #242424;
+      --edge: #3f3f3f;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: transparent;
+    }
+
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    .flow {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 0 9px;
+      height: 30px;
+      border: 1px solid var(--edge);
+      border-radius: 18px;
+      background: var(--surface);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    button,
+    .waveform {
+      -webkit-app-region: no-drag;
+    }
+
+    button {
+      border: 0;
+      padding: 0;
+      color: inherit;
+      font: inherit;
+      background: none;
+      cursor: pointer;
+    }
+
+    button:focus-visible {
+      outline: 2px solid #ffffff;
+      outline-offset: 3px;
+      border-radius: 50%;
+    }
+
+    .waveform:focus-visible {
+      outline: 2px solid rgba(255, 255, 255, 0.75);
+      outline-offset: 2px;
+      border-radius: 5px;
+    }
+
+    /* circular icon buttons */
+    .round {
+      width: 18px;
+      height: 18px;
+      flex: 0 0 18px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: #ffffff;
+      color: #111111;
+      transition: transform 0.16s ease, background 0.18s ease;
+    }
+
+    .round svg {
+      width: 10px;
+      height: 10px;
+      display: block;
+    }
+
+    .round:hover {
+      transform: scale(1.07);
+    }
+
+    .round:active {
+      transform: scale(0.94);
+    }
+
+    .close-button:hover {
+      background: #ff5f57;
+      color: #ffffff;
+    }
+
+    .record-button:hover {
+      background: #ffe9e9;
+    }
+
+    .flow.recording .record-button {
+      background: #ff5f57;
+      color: #ffffff;
+    }
+
+    /* bar row */
+    .waveform {
+      flex: 1;
+      height: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      cursor: pointer;
+      border-radius: 5px;
+      min-width: 60px;
+    }
+
+    .bar {
+      width: 2px;
+      height: 6px;
+      flex: 1 1 2px;
+      max-width: 2px;
+      min-width: 1px;
+      border-radius: 99px;
+      background: #ffffff;
+      transform-origin: center;
+      transition: transform 0.2s ease;
+    }
+
+    .bar:nth-child(3n) { height: 7.5px; }
+    .bar:nth-child(4n) { height: 5px; }
+    .bar:nth-child(5n) { height: 8.5px; }
+    .bar:nth-child(7n) { height: 4.5px; }
+
+    .flow.recording .bar {
+      animation: pulse var(--d, 0.6s) ease-in-out infinite alternate;
+    }
+
+    .flow.recording .bar:nth-child(3n) { --d: 0.53s; }
+    .flow.recording .bar:nth-child(4n) { --d: 0.68s; }
+    .flow.recording .bar:nth-child(5n) { --d: 0.47s; }
+    .flow.recording .bar:nth-child(7n) { --d: 0.74s; }
+
+    @keyframes pulse {
+      from {
+        transform: scaleY(0.3);
+      }
+      to {
+        transform: scaleY(1);
+      }
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .status {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.7);
+      margin-left: 4px;
+      white-space: nowrap;
+      max-width: 150px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="flow" id="flow" aria-label="Whisper Flow controls">
+    <button
+      class="round close-button"
+      id="close"
+      type="button"
+      title="Close"
+    >
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path
+          d="M6 6l12 12M18 6L6 18"
+          stroke="currentColor"
+          stroke-width="2.2"
+          stroke-linecap="round"
+        />
+      </svg>
+      <span class="sr-only">Close</span>
+    </button>
+
+    <div
+      class="waveform"
+      id="waveform"
+      title="Start or stop recording"
+      role="button"
+      tabindex="0"
+      aria-label="Start or stop recording"
+    ></div>
+
+    <button
+      class="round record-button"
+      id="record"
+      type="button"
+      title="Start or stop recording"
+    >
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path
+          d="M12 20V5M6 11l6-6 6 6"
+          stroke="currentColor"
+          stroke-width="2.2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+      <span class="sr-only">Start or stop recording</span>
+    </button>
+
+    <span class="status" id="status">Loading...</span>
+  </main>
+
+  <script>
+    const BAR_COUNT = 17; // Half of original for 2X smaller
+    const flow = document.getElementById("flow");
+    const waveform = document.getElementById("waveform");
+    const record = document.getElementById("record");
+    const close = document.getElementById("close");
+    const status = document.getElementById("status");
+
+    let busyToggling = false;
+
+    // Create waveform bars
+    for (let i = 0; i < BAR_COUNT; i++) {
+      const bar = document.createElement("i");
+      bar.className = "bar";
+      waveform.appendChild(bar);
+    }
+
+    function render(data) {
+      flow.classList.toggle("recording", Boolean(data.recording));
+      if (data.messages && data.messages.length > 0) {
+        const lastMsg = data.messages[data.messages.length - 1];
+        status.textContent = lastMsg;
+      }
+    }
+
+    async function refresh() {
+      try {
+        const response = await fetch("/api/status");
+        render(await response.json());
+      } catch (err) {
+        flow.classList.remove("recording");
+        status.textContent = "Offline";
+      }
+    }
+
+    async function toggleRecording() {
+      if (busyToggling) return;
+      busyToggling = true;
+      try {
+        const response = await fetch("/api/toggle", { method: "POST" });
+        const data = await response.json();
+        render(data);
+      } catch (err) {
+        status.textContent = "Error";
+        console.error("Toggle error:", err);
+      } finally {
+        busyToggling = false;
+      }
+    }
+
+    waveform.addEventListener("click", toggleRecording);
+    record.addEventListener("click", toggleRecording);
+
+    waveform.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggleRecording();
+      }
+    });
+
+    close.addEventListener("click", () => {
+      window.close();
+    });
+
+    // Alt+P hotkey
+    document.addEventListener("keydown", (e) => {
+      if (e.altKey && e.key.toLowerCase() === "p") {
+        e.preventDefault();
+        toggleRecording();
+      }
+    });
+
+    // Initial refresh and polling
+    refresh();
+    setInterval(refresh, 400);
+  </script>
+</body>
+</html>
